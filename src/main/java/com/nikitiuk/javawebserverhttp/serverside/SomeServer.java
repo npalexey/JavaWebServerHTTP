@@ -1,38 +1,67 @@
 package com.nikitiuk.javawebserverhttp.serverside;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-
-import java.io.DataOutputStream;
 import java.net.InetAddress;
+import java.net.URLDecoder;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.StringTokenizer;
 
 public class SomeServer extends Thread {
-
-    private Socket client = null;
+    private static Logger logger =  LogManager.getLogger(SomeServer.class);
+    private static Properties properties = new Properties();
+    private Socket client;
     private BufferedReader inClient = null;
     private DataOutputStream outClient = null;
-    private Map<String, Object> dataMap;
+
 
     public SomeServer(Socket cl) {
         client = cl;
     }
 
+    public static void main(String[] args) throws Exception {
+        clearPropertiesFile();
+
+        ServerSocket server = new ServerSocket(7070, 10, InetAddress.getByName("127.0.0.1"));
+
+        logger.info("HTTPServer started on port 7070");
+
+        while (true) {
+            Socket connected = server.accept();
+            SomeServer httpServer = new SomeServer(connected);
+            httpServer.start();
+        }
+    }
+
+    public static void clearPropertiesFile() {
+        try {
+            if (new File("data.properties").exists()) {  //check whether data.properties file exists and if so DELETE ITS CONTENT,..
+                properties.load(new FileInputStream("data.properties")); //be careful if you have something important there
+                properties.clear();
+                properties.store(new FileOutputStream("data.properties"), null);
+            }
+        } catch (Exception e) {
+            logger.error(e);
+        }
+    }
+
     @Override
     public void run() {
         try {
-            System.out.println("The Client " + client.getInetAddress() + ":" + client.getPort() + " is connected");
+            Map<String, String> dataMap = new HashMap<>();
+            readPropertiesIntoMap(dataMap);
+            logger.info("The Client " + client.getInetAddress() + ":" + client.getPort() + " is connected");
 
             inClient = new BufferedReader(new InputStreamReader(client.getInputStream()));
             outClient = new DataOutputStream(client.getOutputStream());
 
-            String requestString = inClient.readLine();
-            String headerLine = requestString;
+            String headerLine = inClient.readLine();
 
-            /** sometimes headerLine is null */
             if (headerLine == null)
                 return;
 
@@ -40,70 +69,158 @@ public class SomeServer extends Thread {
             String httpMethod = tokenizer.nextToken();
             String httpQueryString = tokenizer.nextToken();
 
-            System.out.println("The HTTP request string is ....");
-            while (inClient.ready()) {
-                /** Read the HTTP request until the end */
-                System.out.println(requestString);
-                requestString = inClient.readLine();
+            logger.info("The HTTP request:");
+            logger.info(headerLine);
+
+            char[] bodyOfRequest = new char[getContentLengthOfARequestBodyAndLogHeaders(inClient)];
+            inClient.read(bodyOfRequest);
+            logger.info(new String(bodyOfRequest));
+
+            switch (httpMethod){
+                case "GET":
+                    onGetRequest(httpQueryString); break;
+                case "POST":
+                    onPutAndUnrestfulPostRequest(httpQueryString, bodyOfRequest, dataMap); break;
+                case "PUT":
+                    onPutAndUnrestfulPostRequest(httpQueryString, bodyOfRequest, dataMap); break;
+                case "DELETE":
+                    onDeleteRequest(httpQueryString, dataMap); break;
+                default:
             }
+        } catch (Exception e) {
+            logger.error(e);
+        }
+    }
 
-            if (httpMethod.equals("GET")) {
-                if (httpQueryString.equals("/")) {
-                    /** return the home page */
-                    homePage();
-                } else if (httpQueryString.startsWith("/hello")) {
-                    /** return the hello page */
-                    helloPage(
-                            httpQueryString.substring(httpQueryString.lastIndexOf('/') + 1, httpQueryString.length()));
-                } else {
-                    sendResponse(404, "<b>The Requested resource not found.</b>");
+    public void readPropertiesIntoMap(Map<String, String> dataMap){
+        try {
+            if (new File("data.properties").exists()) {
+                properties.load(new FileInputStream("data.properties"));
+            }
+            if (!properties.isEmpty()) {
+                for (String key : properties.stringPropertyNames()) {
+                    dataMap.put(key, properties.get(key).toString());
                 }
-            } else if (httpMethod.equals("POST")){
-                if (httpQueryString.equals("/mapdata")){
+            }
+        } catch (Exception e) {
+            logger.error(e);
+        }
+    }
 
+    public Integer getContentLengthOfARequestBodyAndLogHeaders(BufferedReader inClient) throws Exception{
+        try {
+            boolean headersFinished = false;
+            int conlen = 0;
+            while (!headersFinished) {
+                String line = inClient.readLine();
+                headersFinished = line.isEmpty();
+                logger.info(line);
+                if (line.startsWith("Content-Length:")) {
+                    String cl = line.substring("Content-Length:".length()).trim();
+                    conlen = Integer.parseInt(cl);
                 }
+            }
+            return conlen;
+        } catch (Exception e) {
+            logger.error(e);
+            throw e;
+        }
+    }
+
+    public void onGetRequest(String httpQueryString)  {
+        try{
+            if (httpQueryString.equals("/")) {
+                mainPage();
             } else {
                 sendResponse(404, "<b>The Requested resource not found.</b>");
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e);
         }
     }
 
-    /**
-     * Method used to compose the response back to the client.
-     *
-     * @param statusCode
-     * @param responseString
-     * @throws Exception
-     */
-    public void sendResponse(int statusCode, String responseString) throws Exception {
+    public void onPutAndUnrestfulPostRequest(String httpQueryString, char[] bodyOfRequest, Map<String, String> dataMap){
+        try{
+            if (httpQueryString.equals("/mapdata") && bodyOfRequest.length > 0){
+                putPairsFromRequestIntoMap(bodyOfRequest, dataMap);
 
+                if(!dataMap.isEmpty()){
+                    logger.info(dataMap.toString());
+                    properties.putAll(dataMap);
+                    properties.store(new FileOutputStream("data.properties"), null);
+                }
+                sendResponse(200, "HTTPServer Home Page.");
+            } else {
+                sendResponse(204, "No Content In The Body Of Request");
+            }
+
+        } catch (Exception e){
+            logger.error(e);
+        }
+    }
+
+    public void putPairsFromRequestIntoMap(char[] bodyOfRequest, Map<String, String> dataMap){
+        try {
+            String query = new String(bodyOfRequest);
+            String[] pairs = query.split("&");
+            for (String pair : pairs) {
+                int idx = pair.indexOf("=");
+                String key = URLDecoder.decode(pair.substring(0, idx), "UTF-8");
+                String value = URLDecoder.decode(pair.substring(idx + 1), "UTF-8");
+                if(dataMap.containsKey(key)){
+                    logger.info(String.format("Map already contains the key: %s", key));
+                } else {
+                    dataMap.put(key, value);
+                }
+            }
+        } catch (Exception e) {
+            logger.error(e);
+        }
+    }
+
+    public void onDeleteRequest(String httpQueryString, Map<String, String> dataMap){
+        try{
+            String keyToDelete;
+            if (httpQueryString.length() > 1 && dataMap.containsKey(keyToDelete = httpQueryString.substring(1))){
+                dataMap.remove(keyToDelete);
+                logger.info(dataMap.toString());
+                sendResponse(200, String.format("%s successfully removed", keyToDelete));
+            } else {
+                sendResponse(404, "Resource Not Found");
+            }
+        } catch (Exception e) {
+            logger.error(e);
+        }
+    }
+
+    public void sendResponse(int statusCode, String responseString) throws Exception {
         String HTML_START = "<html><title>HTTP Server in Java</title><body>";
         String HTML_END = "</body></html>";
         String NEW_LINE = "\r\n";
 
-        String statusLine = null;
-        String serverdetails = Headers.SERVER + ": Java Server";
-        String contentLengthLine = null;
+        String statusLine;
+        String serverDetails = Headers.SERVER + ": Java Server";
+        String contentLengthLine;
         String contentTypeLine = Headers.CONTENT_TYPE + ": text/html" + NEW_LINE;
 
-        if (statusCode == 200)
+        if (statusCode == 200){
             statusLine = Status.HTTP_200;
-        else
+        } else if (statusCode == 204){
+            statusLine = Status.HTTP_204;
+        } else {
             statusLine = Status.HTTP_404;
+        }
 
         statusLine += NEW_LINE;
         responseString = HTML_START + responseString + HTML_END;
         contentLengthLine = Headers.CONTENT_LENGTH + responseString.length() + NEW_LINE;
 
         outClient.writeBytes(statusLine);
-        outClient.writeBytes(serverdetails);
+        outClient.writeBytes(serverDetails);
         outClient.writeBytes(contentTypeLine);
         outClient.writeBytes(contentLengthLine);
         outClient.writeBytes(Headers.CONNECTION + ": close" + NEW_LINE);
 
-        /** adding the new line between header and body */
         outClient.writeBytes(NEW_LINE);
 
         outClient.writeBytes(responseString);
@@ -111,63 +228,23 @@ public class SomeServer extends Thread {
         outClient.close();
     }
 
-    /**
-     * Method used to compose the home page response to the client
-     *
-     * @throws Exception
-     */
-    public void homePage() throws Exception {
+    public void mainPage() throws Exception {
         StringBuffer responseBuffer = new StringBuffer();
-        responseBuffer.append("<b>HTTPServer Home Page.</b><BR><BR>");
-        responseBuffer.append("<b>To see the Hello page use : http://localhost:7070/hello/name</b><BR>");
+        responseBuffer.append("<b>HTTPServer First Attempt.</b><BR><BR>");
         sendResponse(200, responseBuffer.toString());
     }
 
-    /**
-     * Method used to compose the hello page response to the client
-     *
-     * @throws Exception
-     */
-    public void helloPage(String name) throws Exception {
-        StringBuffer responseBuffer = new StringBuffer();
-        responseBuffer.append("<b>Hello:").append(name).append("</b><BR>");
-        sendResponse(200, responseBuffer.toString());
-    }
-
-    /**
-     * class used to store headers constants
-     *
-     */
     private static class Headers {
-        public static final String SERVER = "SomeServer";
-        public static final String CONNECTION = "Connection";
-        public static final String CONTENT_LENGTH = "Content-Length";
-        public static final String CONTENT_TYPE = "Content-Type";
+        private static final String SERVER = "SomeServer";
+        private static final String CONNECTION = "Connection";
+        private static final String CONTENT_LENGTH = "Content-Length";
+        private static final String CONTENT_TYPE = "Content-Type";
     }
 
-    /**
-     * class used to store status line constants
-     *
-     */
     private static class Status {
-        public static final String HTTP_200 = "HTTP/1.1 200 OK";
-        public static final String HTTP_404 = "HTTP/1.1 404 Not Found";
+        private static final String HTTP_200 = "HTTP/1.1 200 OK";
+        private static final String HTTP_204 = "HTTP/1.1 204 No Content";
+        private static final String HTTP_404 = "HTTP/1.1 404 Not Found";
     }
 
-    public static void main(String args[]) throws Exception {
-
-        ServerSocket server = new ServerSocket(7070, 10, InetAddress.getByName("127.0.0.1"));
-
-        System.out.println("HTTPServer started on port 7070");
-
-        /**
-         * loop to keep the application alive - a new HTTPServer object is
-         * created for each client
-         */
-        while (true) {
-            Socket connected = server.accept();
-            SomeServer httpServer = new SomeServer(connected);
-            httpServer.start();
-        }
-    }
 }
