@@ -19,9 +19,8 @@ public class SomeServer extends Thread {
     private BufferedReader inClient = null;
     private DataOutputStream outClient = null;
 
-
     public SomeServer(Socket cl) {
-        client = cl;
+        this.client = cl;
     }
 
     public static void main(String[] args) throws Exception {
