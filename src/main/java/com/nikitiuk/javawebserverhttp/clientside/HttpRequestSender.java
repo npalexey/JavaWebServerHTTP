@@ -1,7 +1,7 @@
 package com.nikitiuk.javawebserverhttp.clientside;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.InputStreamReader;
@@ -9,7 +9,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 public class HttpRequestSender {
-    private static Logger logger =  LogManager.getLogger(HttpRequestSender.class);
+    private static final Logger logger =  LoggerFactory.getLogger(HttpRequestSender.class);
     private final String USER_AGENT = "Mozilla/5.0";
 
     public static void main(String[] args) throws Exception {
@@ -19,11 +19,11 @@ public class HttpRequestSender {
         logger.info("Testing 1 - Send Http GET request");
         http.sendGet();
 
-        logger.info("Testing 2 - Send Http POST request");
-        http.sendPostOrPut("POST");
+        //logger.info("Testing 2 - Send Http POST request");
+        //http.sendPostOrPut("POST");
 
-        logger.info("Testing 3 - Send Http DELETE request");
-        http.sendDelete();
+        //logger.info("Testing 3 - Send Http DELETE request");
+        //http.sendDelete();
     }
 
     private void sendGet() throws Exception {

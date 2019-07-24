@@ -1,7 +1,7 @@
 package com.nikitiuk.javawebserverhttp.serverside;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -13,7 +13,7 @@ import java.util.Properties;
 import java.util.StringTokenizer;
 
 public class SomeServer extends Thread {
-    private static Logger logger =  LogManager.getLogger(SomeServer.class);
+    private static final Logger logger =  LoggerFactory.getLogger(SomeServer.class);
     private static Properties properties = new Properties();
     private Socket client;
     private BufferedReader inClient = null;
@@ -46,7 +46,7 @@ public class SomeServer extends Thread {
                 properties.store(new FileOutputStream("data.properties"), null);
             }
         } catch (Exception e) {
-            logger.error(e);
+            logger.error("Exception thrown: ",e);
         }
     }
 
@@ -88,7 +88,7 @@ public class SomeServer extends Thread {
                 default:
             }
         } catch (Exception e) {
-            logger.error(e);
+            logger.error("Exception thrown: ",e);
         }
     }
 
@@ -103,7 +103,7 @@ public class SomeServer extends Thread {
                 }
             }
         } catch (Exception e) {
-            logger.error(e);
+            logger.error("Exception thrown: ",e);
         }
     }
 
@@ -122,7 +122,7 @@ public class SomeServer extends Thread {
             }
             return conlen;
         } catch (Exception e) {
-            logger.error(e);
+            logger.error("Exception thrown: ",e);
             throw e;
         }
     }
@@ -135,7 +135,7 @@ public class SomeServer extends Thread {
                 sendResponse(404, "<b>The Requested resource not found.</b>");
             }
         } catch (Exception e) {
-            logger.error(e);
+            logger.error("Exception thrown: ",e);
         }
     }
 
@@ -155,7 +155,7 @@ public class SomeServer extends Thread {
             }
 
         } catch (Exception e){
-            logger.error(e);
+            logger.error("Exception thrown: ",e);
         }
     }
 
@@ -174,7 +174,7 @@ public class SomeServer extends Thread {
                 }
             }
         } catch (Exception e) {
-            logger.error(e);
+            logger.error("Exception thrown: ",e);
         }
     }
 
@@ -189,7 +189,7 @@ public class SomeServer extends Thread {
                 sendResponse(404, "Resource Not Found");
             }
         } catch (Exception e) {
-            logger.error(e);
+            logger.error("Exception thrown: ",e);
         }
     }
 
