@@ -19,11 +19,11 @@ public class HttpRequestSender {
         logger.info("Testing 1 - Send Http GET request");
         http.sendGet();
 
-        //logger.info("Testing 2 - Send Http POST request");
-        //http.sendPostOrPut("POST");
+        logger.info("Testing 2 - Send Http POST request");
+        http.sendPostOrPut("POST");
 
-        //logger.info("Testing 3 - Send Http DELETE request");
-        //http.sendDelete();
+        logger.info("Testing 3 - Send Http DELETE request");
+        http.sendDelete();
     }
 
     private void sendGet() throws Exception {
@@ -62,7 +62,7 @@ public class HttpRequestSender {
         URL obj = new URL(url);
         HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 
-        con.setRequestMethod("POST");
+        con.setRequestMethod(requestMethod);
         con.setRequestProperty("User-Agent", USER_AGENT);
         con.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
 
@@ -76,7 +76,7 @@ public class HttpRequestSender {
         wr.close();
 
         int responseCode = con.getResponseCode();
-        logger.info("Sending 'POST' request to URL : " + url);
+        logger.info(String.format("Sending '%s' request to URL : " + url, requestMethod));
         logger.info("Post parameters : " + urlParameters);
         logger.info("Response Code : " + responseCode);
 
