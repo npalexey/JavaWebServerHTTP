@@ -39,7 +39,7 @@ public class SomeServer extends Thread {
 
     public static void clearPropertiesFile() {
         try {
-            if (new File("data.properties").exists()) {  //check whether data.properties file exists and if so DELETE ITS CONTENT,..
+            if (new File("data.properties").exists()) {  //check whether data.properties file exists and if so - DELETE ITS CONTENT,..
                 properties.load(new FileInputStream("data.properties")); //be careful if you have something important there
                 properties.clear();
                 properties.store(new FileOutputStream("data.properties"), null);
@@ -77,11 +77,11 @@ public class SomeServer extends Thread {
 
             switch (httpMethod){
                 case "GET":
-                    onGetRequest(httpQueryString); break;
+                    onGetRequest(httpQueryString, dataMap); break;
                 case "POST":
-                    onPutAndUnrestfulPostRequest(httpQueryString, bodyOfRequest, dataMap); break;
+                    onPutAndUnRestfulPostRequest(httpQueryString, bodyOfRequest, dataMap); break;
                 case "PUT":
-                    onPutAndUnrestfulPostRequest(httpQueryString, bodyOfRequest, dataMap); break;
+                    onPutAndUnRestfulPostRequest(httpQueryString, bodyOfRequest, dataMap); break;
                 case "DELETE":
                     onDeleteRequest(httpQueryString, dataMap); break;
                 default:
@@ -126,10 +126,12 @@ public class SomeServer extends Thread {
         }
     }
 
-    public void onGetRequest(String httpQueryString)  {
+    public void onGetRequest(String httpQueryString, Map<String, String> dataMap)  {
         try{
             if (httpQueryString.equals("/")) {
                 mainPage();
+            } else if (httpQueryString.equals("/results")){
+                resultsPage(dataMap);
             } else {
                 sendResponse(404, "<b>The Requested resource not found.</b>");
             }
@@ -138,7 +140,7 @@ public class SomeServer extends Thread {
         }
     }
 
-    public void onPutAndUnrestfulPostRequest(String httpQueryString, char[] bodyOfRequest, Map<String, String> dataMap){
+    public void onPutAndUnRestfulPostRequest(String httpQueryString, char[] bodyOfRequest, Map<String, String> dataMap){
         try{
             if (httpQueryString.equals("/mapdata") && bodyOfRequest.length > 0){
                 putPairsFromRequestIntoMap(bodyOfRequest, dataMap);
@@ -231,6 +233,16 @@ public class SomeServer extends Thread {
         StringBuffer responseBuffer = new StringBuffer();
         responseBuffer.append("<b>HTTPServer First Attempt.</b><BR><BR>");
         sendResponse(200, responseBuffer.toString());
+    }
+
+    public void resultsPage(Map<String, String> dataMap) throws Exception {
+        StringBuilder responseBuilder = new StringBuilder();
+        if(dataMap != null && !dataMap.isEmpty()){
+            responseBuilder.append("<b>Data: ").append(dataMap.toString()).append("<b>");
+        } else {
+            responseBuilder.append("<b>HTTPServer First Attempt.</b><BR><BR>");
+        }
+        sendResponse(200, responseBuilder.toString());
     }
 
     private static class Headers {

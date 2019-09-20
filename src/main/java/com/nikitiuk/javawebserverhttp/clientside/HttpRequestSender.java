@@ -22,8 +22,8 @@ public class HttpRequestSender {
         logger.info("Testing 2 - Send Http POST request");
         http.sendPostOrPut("POST");
 
-        logger.info("Testing 3 - Send Http DELETE request");
-        http.sendDelete();
+        /*logger.info("Testing 3 - Send Http DELETE request");
+        http.sendDelete();*/
     }
 
     private void sendGet() throws Exception {
