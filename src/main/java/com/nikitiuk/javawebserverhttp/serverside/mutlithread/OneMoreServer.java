@@ -1,4 +1,4 @@
-package com.nikitiuk.javawebserverhttp.serverside;
+package com.nikitiuk.javawebserverhttp.serverside.mutlithread;
 
 import java.io.*;
 import java.net.ServerSocket;
