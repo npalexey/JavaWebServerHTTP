@@ -19,7 +19,7 @@ public class WorkerRunnable implements Runnable{
         try {
             InputStream input  = clientSocket.getInputStream();
             OutputStream output = clientSocket.getOutputStream();
-            long time = System.currentTimeMillis();
+            long time = System.currentTimeMillis()/1000;
             output.write(("HTTP/1.1 200 OK\n\nWorkerRunnable: " +
                     this.serverText + " - " +
                     time +

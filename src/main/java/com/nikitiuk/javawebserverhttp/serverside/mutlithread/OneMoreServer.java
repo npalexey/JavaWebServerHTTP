@@ -1,13 +1,20 @@
 package com.nikitiuk.javawebserverhttp.serverside.mutlithread;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.text.SimpleDateFormat;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
+import java.util.Locale;
 
 public class OneMoreServer {
 
+    private static final Logger logger = LoggerFactory.getLogger(OneMoreServer.class);
     private ServerSocket myServerSocket;
     private boolean ServerOn = true;
 
@@ -81,17 +88,23 @@ public class OneMoreServer {
                         out.flush();
                         m_bRunThread = false;
                     }
-                    if (clientCommand.equalsIgnoreCase("quit")) {
-                        m_bRunThread = false;
-                        System.out.print("Stopping client thread for client : ");
-                    } else if (clientCommand.equalsIgnoreCase("end")) {
-                        m_bRunThread = false;
-                        System.out.print("Stopping client thread for client : ");
+                    try {
+                        if (clientCommand.equalsIgnoreCase("quit")) {
+                            m_bRunThread = false;
+                            System.out.print("Stopping client thread for client : ");
+                        } else if (clientCommand.equalsIgnoreCase("end")) {
+                            m_bRunThread = false;
+                            System.out.print("Stopping client thread for client : ");
+                            ServerOn = false;
+                        } else {
+                            out.println("Server Says : " + clientCommand);
+                            out.flush();
+                        }
+                    } catch (Exception e) {
+                        logger.error("ERROR.", e);
                         ServerOn = false;
-                    } else {
-                        out.println("Server Says : " + clientCommand);
-                        out.flush();
                     }
+
                 }
             } catch (Exception e) {
                 e.printStackTrace();

@@ -8,10 +8,11 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URLDecoder;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.StringTokenizer;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 
 public class SomeServer extends Thread {
 
@@ -63,8 +64,12 @@ public class SomeServer extends Thread {
 
             String headerLine = inClient.readLine();
 
-            if (headerLine == null)
+            while (headerLine == null) {
+                headerLine = inClient.readLine();
+            }
+            /*if (headerLine == null) {
                 return;
+            }*/
 
             StringTokenizer tokenizer = new StringTokenizer(headerLine);
             String httpMethod = tokenizer.nextToken();
@@ -201,14 +206,15 @@ public class SomeServer extends Thread {
     }
 
     public void sendResponse(int statusCode, String responseString) throws Exception {
-        String HTML_START = "<html><title>HTTP Server in Java</title><body>";
+        String HTML_START = "<html><head><meta charset=\"UTF-8\"><title>HTTP Server in Java</title></head><body>";
         String HTML_END = "</body></html>";
         String NEW_LINE = "\r\n";
 
         String statusLine;
-        String serverDetails = Headers.SERVER + ": Java Server";
+        String serverDetails = Headers.SERVER + ": Java Server" + NEW_LINE;
         String contentLengthLine;
         String contentTypeLine = Headers.CONTENT_TYPE + ": text/html" + NEW_LINE;
+        String currentDate = Headers.DATE + ": ";
 
         if (statusCode == 200) {
             statusLine = Status.HTTP_200;
@@ -219,13 +225,17 @@ public class SomeServer extends Thread {
         }
 
         statusLine += NEW_LINE;
-        responseString = HTML_START + responseString + HTML_END;
-        contentLengthLine = Headers.CONTENT_LENGTH + responseString.length() + NEW_LINE;
+        responseString = HTML_START + NEW_LINE + responseString + NEW_LINE + HTML_END;
+        contentLengthLine = Headers.CONTENT_LENGTH + ": " + responseString.length() + NEW_LINE;
+        DateTimeFormatter formatter2 = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss O",
+                Locale.ENGLISH)/*.withZone(ZoneOffset.UTC)*/;
+        currentDate = currentDate + formatter2.format(ZonedDateTime.now(ZoneId.systemDefault())) + NEW_LINE;
 
         outClient.writeBytes(statusLine);
         outClient.writeBytes(serverDetails);
         outClient.writeBytes(contentTypeLine);
         outClient.writeBytes(contentLengthLine);
+        outClient.writeBytes(currentDate);
         outClient.writeBytes(Headers.CONNECTION + ": close" + NEW_LINE);
 
         outClient.writeBytes(NEW_LINE);
@@ -237,7 +247,7 @@ public class SomeServer extends Thread {
 
     public void mainPage() throws Exception {
         StringBuffer responseBuffer = new StringBuffer();
-        responseBuffer.append("<b>HTTPServer First Attempt.</b><BR><BR>");
+        responseBuffer.append("<b>HTTPServer First Attempt.</b>");
         sendResponse(200, responseBuffer.toString());
     }
 
@@ -246,17 +256,18 @@ public class SomeServer extends Thread {
         if (dataMap != null && !dataMap.isEmpty()) {
             responseBuilder.append("<b>Data: ").append(dataMap.toString()).append("<b>");
         } else {
-            responseBuilder.append("<b>HTTPServer First Attempt.</b><BR><BR>");
+            responseBuilder.append("<b>HTTPServer First Attempt.</b>");
         }
         sendResponse(200, responseBuilder.toString());
     }
 
     private static class Headers {
 
-        private static final String SERVER = "SomeServer";
+        private static final String SERVER = "Server";
         private static final String CONNECTION = "Connection";
         private static final String CONTENT_LENGTH = "Content-Length";
         private static final String CONTENT_TYPE = "Content-Type";
+        private static final String DATE = "Date";
     }
 
     private static class Status {
@@ -265,5 +276,4 @@ public class SomeServer extends Thread {
         private static final String HTTP_204 = "HTTP/1.1 204 No Content";
         private static final String HTTP_404 = "HTTP/1.1 404 Not Found";
     }
-
 }
