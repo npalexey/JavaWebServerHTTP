@@ -87,8 +87,6 @@ public class SomeServer extends Thread {
                     onGetRequest(httpQueryString, dataMap);
                     break;
                 case "POST":
-                    onPutAndUnRestfulPostRequest(httpQueryString, bodyOfRequest, dataMap);
-                    break;
                 case "PUT":
                     onPutAndUnRestfulPostRequest(httpQueryString, bodyOfRequest, dataMap);
                     break;
@@ -96,7 +94,10 @@ public class SomeServer extends Thread {
                     onDeleteRequest(httpQueryString, dataMap);
                     break;
                 default:
+                    break;
             }
+            inClient.close();
+            outClient.close();
         } catch (Exception e) {
             logger.error("Exception thrown: ", e);
         }
